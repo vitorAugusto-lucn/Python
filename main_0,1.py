@@ -4,7 +4,7 @@ import time
 # Variáveis globais
 wallet = 0  # Começa com 0, o jogador precisa depositar
 taxa_de_vitoria = 0.3  # 30% de chance de vitória
-custo_temporario = None  # Para ofertas especiais
+global custo_temporario # Para ofertas especiais
 
 def dep_cre():
     """Função para depositar créditos na carteira (valor mínimo: 5₢)"""
@@ -121,17 +121,35 @@ def inicio():
         vlr_aposta = escolher_aposta()
 
     # Número de rodadas
+        # Número de rodadas
+    num_rodadas = None
     while True:
         try:
-            num_rodadas = int(input(f"Quantas rodadas deseja apostar? (1 a 3) Custo total: {vlr_aposta * num_rodadas}₢: "))
-            if 1 <= num_rodadas <= 3:
-                custo_total = num_rodadas * vlr_aposta
-                if custo_total > wallet:
-                    print(f"❌ Saldo insuficiente! Você precisa de {custo_total}₢, mas tem {wallet}₢.")
-                else:
-                    break
-            else:
+            num_rodadas_input = input("Quantas rodadas deseja apostar? (1 a 3): ").strip()
+            if not num_rodadas_input.isdigit():
+                print("❌ Por favor, insira um número válido.")
+                continue
+            num_rodadas = int(num_rodadas_input)
+            if num_rodadas < 1 or num_rodadas > 3:
                 print("❌ Escolha entre 1 e 3 rodadas.")
+                continue
+
+            custo_total = num_rodadas * vlr_aposta
+            if custo_total > wallet:
+                print(f"❌ Saldo insuficiente! Custo: {custo_total}₢ | Saldo: {wallet}₢.")
+                # Oferecer depósito rápido
+                if input("Deseja fazer um depósito? (s/n): ").strip().lower() == 's':
+                    dep_cre()
+                    if wallet < custo_total:
+                        print("Depósito insuficiente. Tente apostar menos.")
+                        continue
+                    else:
+                        break  # Saldo suficiente após depósito
+                else:
+                    continue  # Voltar para escolha
+            else:
+                break  # Tudo OK: número válido e saldo suficiente
+
         except ValueError:
             print("❌ Por favor, insira um número válido.")
 
@@ -156,30 +174,54 @@ def inicio():
         print(f"➡️ Oferta usada. Aposta voltou ao valor normal a partir da próxima.")
         custo_temporario = None
 
-# === Programa Principal ===
+def ler_sim_nao(mensagem):
+    """
+    Lê uma resposta do usuário e garante que seja 's' (sim) ou 'n' (não).
+    Aceita: s, sim, n, não, nao, no, etc.
+    """
+    while True:
+        escolha = input(mensagem).strip().lower()
+        if escolha in ['s', 'sim']:
+            return True
+        elif escolha in ['n', 'não', 'nao', 'no']:
+            return False
+        else:
+            print("❌ Entrada inválida. Por favor, digite 's' para sim ou 'n' para não.")
+
 if __name__ == "__main__":
-    # Primeiro depósito inicial
+    global custo_temporario
+    custo_temporario = None  # Certifique-se de que começa como None
+
     if wallet == 0:
         print("💳 Para começar, faça seu primeiro depósito!")
         dep_cre()
 
     while True:
         inicio()
-        continuar = input("Deseja jogar novamente? (s/n): ").strip().lower()
-        if continuar != 's':
+
+        # Pergunta se quer continuar
+        if not ler_sim_nao("Deseja jogar novamente? (s/n): "):
             print("❌ Nenhuma linha vencedora. Tente novamente!")
-            oferta = input("Você está desistindo? Que tal tentar por 2₢ na próxima rodada? (s/n): ").strip().lower()
-            if oferta == 's' and wallet >= 2:
-                custo_temporario = 2
-                print("✅ Ótimo! Na próxima rodada, você poderá apostar por apenas 2₢. Boa sorte! 🍀")
-            elif oferta == 's' and wallet < 2:
-                print("❌ Saldo insuficiente para oferta. Depósito necessário.")
-                dep_cre()
+
+            # Oferece tentar com 2₢
+            if ler_sim_nao("Você está desistindo? Que tal tentar por 2₢ na próxima rodada? (s/n): "):
                 if wallet >= 2:
                     custo_temporario = 2
-                    print("✅ Oferta ativada! Próxima aposta por 2₢.")
+                    print("✅ Ótimo! Próxima rodada custará apenas 2₢. Boa sorte! 🍀")
                 else:
-                    print("➡️ Continue jogando normalmente.")
+                    print("❌ Saldo insuficiente. Vamos te ajudar.")
+                    dep_cre()
+                    if wallet >= 2:
+                        custo_temporario = 2
+                        print("✅ Oferta ativada! Próxima aposta por 2₢.")
+                    else:
+                        print("➡️ Depósito insuficiente. Tente novamente mais tarde.")
+                        print("Obrigado por jogar! Até a próxima! 🐵")
+                        break  # Só sai se não conseguiu nem ativar a oferta
+                # → Não dá `break` aqui! Continua o loop para jogar com 2₢
             else:
                 print("Obrigado por jogar! Até a próxima! 🐵")
-            break
+                break  # Jogador recusou a oferta → sai
+        else:
+            # Jogador disse "s" para jogar novamente → continua o loop
+            pass  # O `while True` já cuida disso
