@@ -121,7 +121,6 @@ def inicio():
         vlr_aposta = escolher_aposta()
 
     # Número de rodadas
-        # Número de rodadas
     num_rodadas = None
     while True:
         try:
